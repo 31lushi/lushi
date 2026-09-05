@@ -1,6 +1,6 @@
 // ============ 配置区 ============
-const API_URL = "https://lushi.31lushi.deno.net";
-const MODEL = "deepseek-v4-flash-vision-exp";
+const API_URL = "https://lushi.31lushi.deno.net"; 
+const MODEL = "deepseek-chat";  
 const SUMMARY_THRESHOLD = 10;
 
 // ============ 存储键 ============

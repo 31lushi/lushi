@@ -1,5 +1,5 @@
 // ============ 配置区 ============
-const API_URL = "https://lushi.a3177669260.workers.dev";
+const API_URL = "https://examples-hello-world.31lushi.deno.net";
 const MODEL = "deepseek-v4-flash-vision-exp";
 const SUMMARY_THRESHOLD = 10;
 

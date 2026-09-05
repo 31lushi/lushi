@@ -1,6 +1,6 @@
-// api.ts - 完整的DeepSeek代理
+// api.ts - DeepSeek API 代理（支持超时与 CORS）
 Deno.serve(async (req) => {
-  // 处理CORS预检请求
+  // 处理 CORS 预检
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 只接受POST请求
+  // 仅允许 POST
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
@@ -24,23 +24,26 @@ Deno.serve(async (req) => {
     });
   }
 
-  try {
-    // 获取请求体
-    const body = await req.json();
-    
-    // 从环境变量获取API密钥
-    const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key not configured' }), {
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
-      });
-    }
+  // 获取 API Key（从环境变量）
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'API key not configured' }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+    });
+  }
 
-    // 调用DeepSeek API
+  try {
+    const body = await req.json();
+
+    // 设置超时（30秒）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    // 调用 DeepSeek API
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -48,12 +51,15 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
 
-    // 获取响应数据
+    clearTimeout(timeoutId);
+
+    // 解析响应
     const data = await response.json();
 
-    // 返回响应
+    // 返回结果
     return new Response(JSON.stringify(data), {
       status: response.status,
       headers: {
@@ -63,7 +69,9 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    // 区分超时错误
+    const msg = error.name === 'AbortError' ? '请求超时' : error.message;
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: {
         'Access-Control-Allow-Origin': '*',

@@ -1,7 +1,7 @@
 {
   "name": "陆时",
   "short_name": "陆时",
-  "start_url": "/lushi.html",
+  "start_url": "/lushi/lushi.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a7ba6",

@@ -1,4 +1,4 @@
-const API_KEY = "在这里粘贴你的DeepSeek API Key";
+const API_KEY = "sk-d03ae70d32c343d7a1db521ba0744175";
 const MODEL = "deepseek-v4-flash-vision-exp";
 
 const MY_AVATAR_KEY = "lushi_my_avatar";

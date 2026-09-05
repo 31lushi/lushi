@@ -15,11 +15,13 @@ const closeMemoryBtn = document.getElementById("closeMemoryBtn");
 // ============ 背景管理 ============
 function applyBackground() {
   const bg = localStorage.getItem(BG_KEY);
+  const messagesEl = document.getElementById("messages");
   if (bg) {
-    const messagesEl = document.getElementById("messages");
-    messagesEl.style.backgroundImage = 'url("' + bg + '")';
+    messagesEl.style.backgroundImage = `url("${bg}")`;
     messagesEl.style.backgroundSize = "cover";
     messagesEl.style.backgroundPosition = "center";
+  } else {
+    messagesEl.style.backgroundImage = "";
   }
 }
 
@@ -31,23 +33,19 @@ function applyBubbleStyle() {
   document.querySelectorAll(".user .bubble").forEach(el => {
     if (color === "pink") el.style.background = "#c96a8b";
     else if (color === "dark") el.style.background = "#2f3542";
-    else if (color === "gradient") {
-      el.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-    }
+    else if (color === "gradient") el.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
     else el.style.background = "#4a7ba6";
   });
 
   document.querySelectorAll(".bubble").forEach(el => {
     if (style === "square") el.style.borderRadius = "6px";
     else if (style === "round") el.style.borderRadius = "24px";
-    else if (style === "bubble") {
-      el.style.borderRadius = "16px 16px 16px 4px";
-    }
+    else if (style === "bubble") el.style.borderRadius = "16px 16px 16px 4px";
     else el.style.borderRadius = "16px";
   });
 }
 
-// ============ 记忆库UI ============
+// ============ 记忆库UI（按类型分组） ============
 function renderMemoryList() {
   const items = window.LushiCore ? window.LushiCore.getMemoryItems() : [];
   memoryList.innerHTML = "";
@@ -69,20 +67,20 @@ function renderMemoryList() {
 
     const groupDiv = document.createElement("div");
     groupDiv.style.marginBottom = "15px";
-    groupDiv.innerHTML = '<div style="font-weight:600; margin-bottom:8px; color:#4a7ba6;">' + groups[type] + '</div>';
+    groupDiv.innerHTML = `<div style="font-weight:600; margin-bottom:8px; color:#4a7ba6;">${groups[type]}</div>`;
 
     typeItems.forEach((item) => {
       const div = document.createElement("div");
       div.className = "memory-item";
       const span = document.createElement("span");
-      span.textContent = item.content || item.event;
+      span.textContent = item.content || item.event || "";
       const del = document.createElement("button");
       del.textContent = "删除";
       del.addEventListener("click", () => {
         const allItems = window.LushiCore.getMemoryItems();
-        const globalIndex = allItems.indexOf(item);
-        if (globalIndex > -1) {
-          allItems.splice(globalIndex, 1);
+        const idx = allItems.indexOf(item);
+        if (idx > -1) {
+          allItems.splice(idx, 1);
           window.LushiCore.saveMemoryItems();
           renderMemoryList();
         }
@@ -96,9 +94,16 @@ function renderMemoryList() {
   }
 }
 
-// ============ 菜单事件 ============
-menuBtn.addEventListener("click", () => {
+// ============ 菜单交互优化 ============
+menuBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
   settingsMenu.classList.toggle("show");
+  morePanel.classList.remove("show");
+});
+
+// 点击外部关闭菜单
+document.addEventListener("click", () => {
+  settingsMenu.classList.remove("show");
   morePanel.classList.remove("show");
 });
 
@@ -121,8 +126,8 @@ bgInput.addEventListener("change", () => {
 document.getElementById("bubbleColorSetting").addEventListener("click", () => {
   const current = localStorage.getItem(BUBBLE_COLOR_KEY) || "default";
   const colors = ["default", "pink", "dark", "gradient"];
-  const nextIndex = (colors.indexOf(current) + 1) % colors.length;
-  localStorage.setItem(BUBBLE_COLOR_KEY, colors[nextIndex]);
+  const next = colors[(colors.indexOf(current) + 1) % colors.length];
+  localStorage.setItem(BUBBLE_COLOR_KEY, next);
   applyBubbleStyle();
   settingsMenu.classList.remove("show");
 });
@@ -130,8 +135,8 @@ document.getElementById("bubbleColorSetting").addEventListener("click", () => {
 document.getElementById("bubbleStyleSetting").addEventListener("click", () => {
   const current = localStorage.getItem(BUBBLE_STYLE_KEY) || "default";
   const styles = ["default", "square", "round", "bubble"];
-  const nextIndex = (styles.indexOf(current) + 1) % styles.length;
-  localStorage.setItem(BUBBLE_STYLE_KEY, styles[nextIndex]);
+  const next = styles[(styles.indexOf(current) + 1) % styles.length];
+  localStorage.setItem(BUBBLE_STYLE_KEY, next);
   applyBubbleStyle();
   settingsMenu.classList.remove("show");
 });
@@ -149,9 +154,7 @@ closeMemoryBtn.addEventListener("click", () => {
 addMemoryBtn.addEventListener("click", () => {
   const text = memoryInput.value.trim();
   if (!text) return;
-
-  const memorySystem = window.LushiCore.memorySystem;
-  memorySystem.addSemantic("manual", text, 2);
+  window.LushiCore.memorySystem.addSemantic("manual", text, 2);
   memoryInput.value = "";
   renderMemoryList();
 });

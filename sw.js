@@ -1,4 +1,4 @@
-const CACHE_NAME = "lushi-cache-v1";
+const CACHE_NAME = "lushi-cache-v2";
 const urlsToCache = [
   "/",
   "/lushi.html",
@@ -11,27 +11,19 @@ const urlsToCache = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
-      .catch(err => {
-        console.log("缓存安装失败:", err);
-      })
+      .then(cache => cache.addAll(urlsToCache))
+      .catch(err => console.log("缓存安装失败:", err))
   );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then(cacheNames =>
+      Promise.all(cacheNames.map(name => {
+        if (name !== CACHE_NAME) return caches.delete(name);
+      }))
+    )
   );
   self.clients.claim();
 });
@@ -39,16 +31,20 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
 
-  if (event.request.url.includes("workers.dev")) {
+  const url = new URL(event.request.url);
+
+  // 不缓存 API 请求和外部代理
+  if (url.pathname.startsWith("/api") || 
+      url.hostname.includes("workers.dev") || 
+      url.hostname === "lushi.31lushi.deno.net") {
     return;
   }
 
   event.respondWith(
     caches.match(event.request)
       .then(cached => {
-        if (cached) {
-          return cached;
-        }
+        if (cached) return cached;
+
         return fetch(event.request).then(response => {
           if (!response || response.status !== 200 || response.type !== "basic") {
             return response;
@@ -61,6 +57,7 @@ self.addEventListener("fetch", event => {
         });
       })
       .catch(() => {
+        // 离线时回退到首页
         if (event.request.mode === "navigate") {
           return caches.match("/lushi.html");
         }

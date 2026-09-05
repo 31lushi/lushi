@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4a7ba6">
-<link rel="apple-touch-icon" href="icon.png">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>陆时</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4a7ba6">
+<link rel="apple-touch-icon" href="icon.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -56,10 +56,22 @@
     height: 100%;
     object-fit: cover;
   }
+  .info {
+    flex: 1;
+  }
   .info .name {
     font-size: 16px;
     font-weight: 600;
     color: #23262b;
+  }
+  .menuBtn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    cursor: pointer;
+    color: #555a60;
   }
   #messages {
     flex: 1;
@@ -69,6 +81,8 @@
     flex-direction: column;
     gap: 14px;
     background: #f7f8fa;
+    background-size: cover;
+    background-position: center;
   }
   .row {
     display: flex;
@@ -221,7 +235,7 @@
     padding: 18px 16px 22px;
     box-shadow: 0 -6px 24px rgba(0,0,0,0.08);
     display: none;
-    z-index: 20;
+    z-index: 30;
   }
   .panel.show {
     display: block;
@@ -252,6 +266,34 @@
     font-size: 12px;
     color: #555a60;
   }
+  .settings-menu {
+    position: absolute;
+    top: 60px;
+    right: 12px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    padding: 10px;
+    display: none;
+    z-index: 40;
+    min-width: 160px;
+  }
+  .settings-menu.show {
+    display: block;
+  }
+  .settings-item {
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #2b2e33;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .settings-item:active {
+    background: #f3f4f6;
+  }
 </style>
 </head>
 <body>
@@ -262,6 +304,7 @@
     <div class="info">
       <div class="name">陆时</div>
     </div>
+    <button class="menuBtn" id="menuBtn">⋯</button>
   </div>
 
   <div id="messages"></div>
@@ -271,6 +314,12 @@
     <input id="userInput" placeholder="和陆时说话..." autocomplete="off">
     <button id="plusBtn" title="更多"></button>
     <button id="sendBtn">发送</button>
+  </div>
+
+  <div class="settings-menu" id="settingsMenu">
+    <div class="settings-item" id="bgSetting">🖼️ 聊天背景</div>
+    <div class="settings-item" id="bubbleColorSetting">🎨 气泡颜色</div>
+    <div class="settings-item" id="bubbleStyleSetting">💬 气泡样式</div>
   </div>
 
   <div class="panel" id="morePanel">
@@ -297,6 +346,7 @@
 
 <input type="file" id="fileInput" accept="image/*" style="display:none">
 <input type="file" id="chatImageInput" accept="image/*" style="display:none">
+<input type="file" id="bgInput" accept="image/*" style="display:none">
 
 <script>
 const API_KEY = "sk-d03ae70d32c343d7a1db521ba0744175";
@@ -307,6 +357,9 @@ const AI_AVATAR_KEY = "lushi_ai_avatar";
 const CHAT_KEY = "lushi_chat_messages";
 const MEMORY_KEY = "lushi_memory_items";
 const TOKEN_STAT_KEY = "lushi_token_stats";
+const BG_KEY = "lushi_chat_bg";
+const BUBBLE_COLOR_KEY = "lushi_bubble_color";
+const BUBBLE_STYLE_KEY = "lushi_bubble_style";
 
 function getMemoryItems() {
   try { return JSON.parse(localStorage.getItem(MEMORY_KEY) || "[]"); } catch (e) { return []; }
@@ -403,6 +456,9 @@ const morePanel = document.getElementById("morePanel");
 const headerAvatar = document.getElementById("headerAvatar");
 const fileInput = document.getElementById("fileInput");
 const chatImageInput = document.getElementById("chatImageInput");
+const bgInput = document.getElementById("bgInput");
+const menuBtn = document.getElementById("menuBtn");
+const settingsMenu = document.getElementById("settingsMenu");
 
 function saveMessages() { localStorage.setItem(CHAT_KEY, JSON.stringify(messages)); }
 function getMyAvatar() { return localStorage.getItem(MY_AVATAR_KEY) || ""; }
@@ -421,6 +477,38 @@ function applyAvatars() {
   document.querySelectorAll(".msg-avatar").forEach(el => {
     if (el.dataset.who === "user") setAvatarHTML(el, getMyAvatar(), "朵");
     if (el.dataset.who === "ai") setAvatarHTML(el, getAIAvatar(), "陆");
+  });
+}
+
+function applyBackground() {
+  const bg = localStorage.getItem(BG_KEY);
+  if (bg) {
+    box.style.backgroundImage = 'url("' + bg + '")';
+  }
+}
+
+function applyBubbleStyle() {
+  const color = localStorage.getItem(BUBBLE_COLOR_KEY) || "default";
+  const style = localStorage.getItem(BUBBLE_STYLE_KEY) || "default";
+
+  document.querySelectorAll(".user .bubble").forEach(el => {
+    if (color === "pink") {
+      el.style.background = "#c96a8b";
+    } else if (color === "dark") {
+      el.style.background = "#2f3542";
+    } else {
+      el.style.background = "#4a7ba6";
+    }
+  });
+
+  document.querySelectorAll(".bubble").forEach(el => {
+    if (style === "square") {
+      el.style.borderRadius = "6px";
+    } else if (style === "round") {
+      el.style.borderRadius = "24px";
+    } else {
+      el.style.borderRadius = "16px";
+    }
   });
 }
 
@@ -445,8 +533,46 @@ fileInput.addEventListener("change", () => {
   reader.readAsDataURL(file);
 });
 
+menuBtn.addEventListener("click", () => {
+  settingsMenu.classList.toggle("show");
+  morePanel.classList.remove("show");
+});
+
+document.getElementById("bgSetting").addEventListener("click", () => {
+  settingsMenu.classList.remove("show");
+  bgInput.click();
+});
+
+bgInput.addEventListener("change", () => {
+  const file = bgInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    localStorage.setItem(BG_KEY, reader.result);
+    applyBackground();
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("bubbleColorSetting").addEventListener("click", () => {
+  const current = localStorage.getItem(BUBBLE_COLOR_KEY) || "default";
+  const next = current === "default" ? "pink" : current === "pink" ? "dark" : "default";
+  localStorage.setItem(BUBBLE_COLOR_KEY, next);
+  applyBubbleStyle();
+  settingsMenu.classList.remove("show");
+});
+
+document.getElementById("bubbleStyleSetting").addEventListener("click", () => {
+  const current = localStorage.getItem(BUBBLE_STYLE_KEY) || "default";
+  const next = current === "default" ? "square" : current === "square" ? "round" : "default";
+  localStorage.setItem(BUBBLE_STYLE_KEY, next);
+  applyBubbleStyle();
+  settingsMenu.classList.remove("show");
+});
+
 plusBtn.addEventListener("click", () => {
   morePanel.classList.toggle("show");
+  settingsMenu.classList.remove("show");
 });
 
 document.getElementById("panelImage").addEventListener("click", () => {
@@ -545,6 +671,8 @@ function addMessage(text, who, timeText) {
       }
     });
   }
+
+  applyBubbleStyle();
 }
 
 function addImageMessage(src, who, timeText) {
@@ -583,6 +711,7 @@ function addImageMessage(src, who, timeText) {
   row.appendChild(wrap);
   box.appendChild(row);
   box.scrollTop = box.scrollHeight;
+  applyBubbleStyle();
 }
 
 function renderSavedMessages() {
@@ -653,6 +782,8 @@ sendBtn.addEventListener("click", send);
 input.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
 
 applyAvatars();
+applyBackground();
+applyBubbleStyle();
 renderSavedMessages();
 </script>
 
